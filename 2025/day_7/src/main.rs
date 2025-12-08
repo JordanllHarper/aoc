@@ -1,4 +1,8 @@
-use std::{env, fs};
+use std::{
+    cmp::{Ordering, max, max_by},
+    collections::HashSet,
+    env, fs,
+};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -20,12 +24,158 @@ fn main() {
     println!("Part {}: {}", if run_part_1 { "1" } else { "2" }, answer);
 }
 
-fn pt_1(input: String) -> i32 {
-    todo!()
+fn pt_1(input: String) -> u64 {
+    let start_char = 'S';
+    let grid: Vec<Vec<(usize, usize, char)>> = input
+        .lines()
+        .enumerate()
+        .map(|(y, row)| row.chars().enumerate().map(|(x, c)| (y, x, c)).collect())
+        .collect();
+    let (start_y, start_x, _) = grid
+        .first()
+        .expect("Invalid grid")
+        .iter()
+        .find(|(_, _, c)| *c == start_char)
+        .expect("Invalid start");
+    let mut num_splits = 0;
+    // We have the start, now we need to
+    // - Iterate downwards until we find a splitter
+    // - When we find a splitter:
+    //  - Split the line in 2
+    //  - Keep track of the splits
+    //  - If the split is not a merge (i.e. a new beam):
+    //      inc num_splits
+    //
+    // We can handle merges using a hash set to track coords
+    //
+
+    let mut coords: HashSet<Coord> = HashSet::from([Coord {
+        y: *start_y,
+        x: *start_x,
+    }]);
+
+    'main: loop {
+        let mut new_coords = coords.clone();
+        let mut iter_coords = coords.into_iter().collect::<Vec<Coord>>();
+
+        iter_coords.sort_by(|a, b| a.x.cmp(&b.x));
+        for coord in iter_coords.into_iter().collect::<Vec<Coord>>() {
+            let next_y = coord.y + 1;
+
+            new_coords.retain(|each| each.y > coord.y);
+
+            let maybe_pos = grid
+                .get(next_y)
+                .map(|s| s.get(coord.x).expect("Invalid x coord"));
+            // we hit the end if this is none
+            let (_, x, c) = match maybe_pos {
+                Some(v) => v,
+                None => break 'main,
+            };
+
+            if *c != '^' {
+                let next = Coord {
+                    y: next_y,
+                    x: coord.x,
+                };
+                let _ = new_coords.insert(next);
+                continue;
+            }
+
+            // Insert 1 to left and right,
+            let left = Coord {
+                y: next_y,
+                x: x - 1,
+            };
+            let right = Coord {
+                y: next_y,
+                x: x + 1,
+            };
+            let is_new_left_split = new_coords.insert(left);
+            let is_new_right_split = new_coords.insert(right);
+            if !is_new_left_split && !is_new_right_split {
+                continue;
+            }
+            num_splits += 1;
+        }
+
+        coords = new_coords;
+    }
+    num_splits
+}
+#[derive(PartialEq, Eq, Hash, Clone, Debug)]
+struct Coord {
+    y: usize,
+    x: usize,
 }
 
-fn pt_2(input: String) -> i32 {
-    todo!()
+fn pt_2(input: String) -> u64 {
+    let start_char = 'S';
+    let grid: Vec<Vec<(usize, usize, char)>> = input
+        .lines()
+        .enumerate()
+        .map(|(y, row)| row.chars().enumerate().map(|(x, c)| (y, x, c)).collect())
+        .collect();
+    let (start_y, start_x, _) = grid
+        .first()
+        .expect("Invalid grid")
+        .iter()
+        .find(|(_, _, c)| *c == start_char)
+        .expect("Invalid start");
+    let mut timelines = 0;
+
+    let mut coords: HashSet<Coord> = HashSet::from([Coord {
+        y: *start_y,
+        x: *start_x,
+    }]);
+
+    'main: loop {
+        let mut new_coords = coords.clone();
+        let mut iter_coords = coords.into_iter().collect::<Vec<Coord>>();
+
+        iter_coords.sort_by(|a, b| a.x.cmp(&b.x));
+        for coord in iter_coords.into_iter().collect::<Vec<Coord>>() {
+            let next_y = coord.y + 1;
+
+            new_coords.retain(|each| each.y > coord.y);
+
+            let maybe_pos = grid
+                .get(next_y)
+                .map(|s| s.get(coord.x).expect("Invalid x coord"));
+            // we hit the end if this is none
+            let (_, x, c) = match maybe_pos {
+                Some(v) => v,
+                None => break 'main,
+            };
+
+            if *c != '^' {
+                let next = Coord {
+                    y: next_y,
+                    x: coord.x,
+                };
+                let _ = new_coords.insert(next);
+                continue;
+            }
+            timelines += 2;
+            println!("Time split at: {}-{}", next_y, x);
+
+            // Insert 1 to left and right,
+            let left = Coord {
+                y: next_y,
+                x: x - 1,
+            };
+            let right = Coord {
+                y: next_y,
+                x: x + 1,
+            };
+            new_coords.insert(left);
+            new_coords.insert(right);
+        }
+        println!("{}", timelines);
+
+        coords = new_coords;
+    }
+    timelines
 }
 
 #[cfg(test)]
@@ -45,13 +195,13 @@ mod test {
         let test = pt_1(test_content);
         assert_eq!(21, test);
     }
-    // #[test]
-    // fn t_pt2() {
-    //     let test_content = fs::read_to_string(TEST).expect("Missing test text file");
-    //     if test_content.is_empty() {
-    //         panic!("Test file is empty! Double check the contents.");
-    //     }
-    //     let test = pt_2(test_content);
-    //     assert_eq!(6, test);
-    // }
+    #[test]
+    fn t_pt2() {
+        let test_content = fs::read_to_string(TEST).expect("Missing test text file");
+        if test_content.is_empty() {
+            panic!("Test file is empty! Double check the contents.");
+        }
+        let test = pt_2(test_content);
+        assert_eq!(40, test);
+    }
 }
