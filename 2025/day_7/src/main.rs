@@ -1,6 +1,5 @@
 use std::{
-    cmp::{Ordering, max, max_by},
-    collections::HashSet,
+    collections::{HashMap, HashSet},
     env, fs,
 };
 
@@ -122,22 +121,21 @@ fn pt_2(input: String) -> u64 {
         .iter()
         .find(|(_, _, c)| *c == start_char)
         .expect("Invalid start");
-    let mut timelines = 0;
 
-    let mut coords: HashSet<Coord> = HashSet::from([Coord {
-        y: *start_y,
-        x: *start_x,
-    }]);
+    let mut coords: HashMap<Coord, u64> = HashMap::from([(
+        Coord {
+            y: *start_y,
+            x: *start_x,
+        },
+        1,
+    )]);
 
-    'main: loop {
+    loop {
         let mut new_coords = coords.clone();
-        let mut iter_coords = coords.into_iter().collect::<Vec<Coord>>();
-
-        iter_coords.sort_by(|a, b| a.x.cmp(&b.x));
-        for coord in iter_coords.into_iter().collect::<Vec<Coord>>() {
+        println!("{:?}", coords);
+        let iter_coords = coords.into_iter().collect::<Vec<(Coord, u64)>>();
+        for (coord, num_timelines) in iter_coords {
             let next_y = coord.y + 1;
-
-            new_coords.retain(|each| each.y > coord.y);
 
             let maybe_pos = grid
                 .get(next_y)
@@ -145,7 +143,7 @@ fn pt_2(input: String) -> u64 {
             // we hit the end if this is none
             let (_, x, c) = match maybe_pos {
                 Some(v) => v,
-                None => break 'main,
+                None => return new_coords.values().sum(),
             };
 
             if *c != '^' {
@@ -153,11 +151,15 @@ fn pt_2(input: String) -> u64 {
                     y: next_y,
                     x: coord.x,
                 };
-                let _ = new_coords.insert(next);
+                if let Some(c) = new_coords.get_mut(&next) {
+                    *c += num_timelines;
+                } else {
+                    let _ = new_coords.insert(next, num_timelines);
+                }
+
+                new_coords.remove(&coord);
                 continue;
             }
-            timelines += 2;
-            println!("Time split at: {}-{}", next_y, x);
 
             // Insert 1 to left and right,
             let left = Coord {
@@ -168,14 +170,24 @@ fn pt_2(input: String) -> u64 {
                 y: next_y,
                 x: x + 1,
             };
-            new_coords.insert(left);
-            new_coords.insert(right);
+            if let Some(l) = new_coords.get_mut(&left) {
+                println!("Merge at left");
+                *l += num_timelines;
+            } else {
+                new_coords.insert(left, num_timelines);
+            }
+
+            if let Some(l) = new_coords.get_mut(&right) {
+                println!("Merge at right");
+                *l += num_timelines;
+            } else {
+                new_coords.insert(right, num_timelines);
+            }
+            new_coords.remove(&coord);
         }
-        println!("{}", timelines);
 
         coords = new_coords;
     }
-    timelines
 }
 
 #[cfg(test)]
