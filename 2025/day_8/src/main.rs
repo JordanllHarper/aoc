@@ -1,4 +1,4 @@
-use std::{env, fs};
+use std::{collections::HashMap, env, fs};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -20,7 +20,7 @@ fn main() {
     println!("Part {}: {}", if run_part_1 { "1" } else { "2" }, answer);
 }
 
-#[derive(Debug, Clone, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct JunctionBox {
     x: i32,
     y: i32,
@@ -52,7 +52,37 @@ fn pt_1(input: String) -> i32 {
         })
         .collect::<Vec<JunctionBox>>();
 
-    println!("{:?}", boxes);
+    let mut straight_lines: HashMap<(&JunctionBox, &JunctionBox), u32> = HashMap::new();
+    for source in &boxes {
+        for target in &boxes {
+            if source == target {
+                continue;
+            }
+            let straight_line = source.x.abs_diff(target.x).pow(2)
+                + source.y.abs_diff(target.y).pow(2)
+                + source.z.abs_diff(target.z).pow(2);
+
+            if straight_lines
+                .keys()
+                .filter(|e| e.0 == target && e.1 == source)
+                .count()
+                == 0
+            {
+                straight_lines.insert((source, target), straight_line);
+            }
+        }
+    }
+
+    let mut kvps = straight_lines
+        .iter()
+        .map(|eachv| (eachv.0, eachv.1))
+        .collect::<Vec<(&(&JunctionBox, &JunctionBox), &u32)>>();
+    kvps.sort_by(|a, b| a.1.cmp(b.1));
+    let mut iter = kvps.iter();
+    let first = iter.next();
+    let second = iter.next();
+    println!("{:?}", first);
+    println!("{:?}", second);
 
     todo!()
 }
