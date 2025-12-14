@@ -22,12 +22,12 @@ fn main() {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct JunctionBox {
-    x: i32,
-    y: i32,
-    z: i32,
+    x: i64,
+    y: i64,
+    z: i64,
 }
 
-fn pt_1(input: String) -> i32 {
+fn pt_1(input: String) -> i64 {
     let boxes = input
         .lines()
         .map(|each| {
@@ -52,42 +52,58 @@ fn pt_1(input: String) -> i32 {
         })
         .collect::<Vec<JunctionBox>>();
 
-    let mut straight_lines: HashMap<(&JunctionBox, &JunctionBox), u32> = HashMap::new();
+    let mut straight_lines: HashMap<(&JunctionBox, &JunctionBox), u64> = HashMap::new();
     for source in &boxes {
         for target in &boxes {
-            if source == target {
+            if source == target || straight_lines.contains_key(&(target, source)) {
                 continue;
             }
             let straight_line = source.x.abs_diff(target.x).pow(2)
                 + source.y.abs_diff(target.y).pow(2)
                 + source.z.abs_diff(target.z).pow(2);
 
-            if straight_lines
-                .keys()
-                .filter(|e| e.0 == target && e.1 == source)
-                .count()
-                == 0
-            {
-                straight_lines.insert((source, target), straight_line);
-            }
+            straight_lines.insert((source, target), straight_line);
         }
     }
 
-    let mut kvps = straight_lines
+    let mut junction_to_straight_line = straight_lines
         .iter()
         .map(|eachv| (eachv.0, eachv.1))
-        .collect::<Vec<(&(&JunctionBox, &JunctionBox), &u32)>>();
-    kvps.sort_by(|a, b| a.1.cmp(b.1));
-    let mut iter = kvps.iter();
-    let first = iter.next();
-    let second = iter.next();
-    println!("{:?}", first);
-    println!("{:?}", second);
+        .collect::<Vec<(&(&JunctionBox, &JunctionBox), &u64)>>();
+    junction_to_straight_line.sort_by(|a, b| a.1.cmp(b.1));
 
+    // TODO: Build circuits
+    // how to represent circuits?
+    //
+    //
+    let mut iter = junction_to_straight_line.iter();
+    let first = iter.next().expect("Invalid input");
+    let mut circuits: Vec<Vec<&JunctionBox>> = vec![vec![first.0.0, first.0.1]];
+    'outer: for ((j1, j2), _) in iter {
+        let mut new_circuits = circuits.clone();
+        for circ in &mut circuits {
+            let contains_j1 = circ.contains(j1);
+            let contains_j2 = circ.contains(j2);
+
+            match (contains_j1, contains_j2) {
+                (true, true) => continue 'outer,
+                (true, false) => {
+                    // TODO: add to j1 circuit
+                }
+                (false, true) => {
+                    // TODO: add to j2
+                }
+                (false, false) => {
+                    // TODO: build circuit
+                    new_circuits.push(vec![j1, j2]);
+                }
+            }
+        }
+    }
     todo!()
 }
 
-fn pt_2(input: String) -> i32 {
+fn pt_2(input: String) -> i64 {
     todo!()
 }
 
