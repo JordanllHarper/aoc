@@ -1,4 +1,7 @@
-use std::{collections::HashMap, env, fs};
+use std::{
+    collections::{HashMap, HashSet},
+    env, fs,
+};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -72,35 +75,43 @@ fn pt_1(input: String) -> i64 {
         .collect::<Vec<(&(&JunctionBox, &JunctionBox), &u64)>>();
     junction_to_straight_line.sort_by(|a, b| a.1.cmp(b.1));
 
-    // TODO: Build circuits
-    // how to represent circuits?
-    //
-    //
     let mut iter = junction_to_straight_line.iter();
     let first = iter.next().expect("Invalid input");
-    let mut circuits: Vec<Vec<&JunctionBox>> = vec![vec![first.0.0, first.0.1]];
+    let mut circuits: Vec<HashSet<&JunctionBox>> = vec![HashSet::from([first.0.0, first.0.1])];
+    println!("{:?}", circuits);
     'outer: for ((j1, j2), _) in iter {
-        let mut new_circuits = circuits.clone();
+        println!("Comparing {:?} to {:?}", j1, j2);
+        let mut new_circuits = Vec::new();
         for circ in &mut circuits {
             let contains_j1 = circ.contains(j1);
             let contains_j2 = circ.contains(j2);
 
             match (contains_j1, contains_j2) {
                 (true, true) => continue 'outer,
+                (false, false) => {
+                    // not a circuit, make a new circuit
+                    new_circuits.push(HashSet::from([*j1, *j2]));
+                }
                 (true, false) => {
-                    // TODO: add to j1 circuit
+                    // insert j2 in the circuit
+                    circ.insert(j2);
                 }
                 (false, true) => {
-                    // TODO: add to j2
-                }
-                (false, false) => {
-                    // TODO: build circuit
-                    new_circuits.push(vec![j1, j2]);
+                    // insert j1 into the circuit
+                    circ.insert(j1);
                 }
             }
         }
+        circuits.append(&mut new_circuits);
     }
-    todo!()
+    circuits.sort_by_key(|v| v.len());
+    let c = circuits
+        .iter()
+        .take(3)
+        .map(|each| each.len() as i64)
+        .collect::<Vec<_>>();
+    println!("{:?}", c);
+    c.iter().product()
 }
 
 fn pt_2(input: String) -> i64 {
